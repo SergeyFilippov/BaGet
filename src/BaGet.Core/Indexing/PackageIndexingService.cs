@@ -41,12 +41,15 @@ namespace BaGet.Core
             Stream readmeStream;
             Stream iconStream;
 
+            string packageProcessedName = string.Empty;
+
             try
             {
                 using (var packageReader = new PackageArchiveReader(packageStream, leaveStreamOpen: true))
                 {
                     package = packageReader.GetPackageMetadata();
                     package.Published = _time.UtcNow;
+                    packageProcessedName = package.Title + ":" + package.Version;
 
                     nuspecStream = await packageReader.GetNuspecAsync(cancellationToken);
                     nuspecStream = await nuspecStream.AsTemporaryFileStreamAsync(cancellationToken);
@@ -74,7 +77,13 @@ namespace BaGet.Core
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Uploaded package is invalid");
+                var message = "Uploaded package is invalid.";
+                if (!string.IsNullOrEmpty(packageProcessedName))
+                {
+                    message += Environment.NewLine + packageProcessedName;
+                }
+
+                _logger.LogError(e, message);
 
                 return PackageIndexingResult.InvalidPackage;
             }
